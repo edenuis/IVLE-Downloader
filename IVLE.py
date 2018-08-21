@@ -6,7 +6,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import TimeoutException, WebDriverException
 
 class ModuleNotFoundError(Exception):
     pass
@@ -43,8 +43,10 @@ class IVLE():
         self.count += 1
         print("Proceeding to login to IVLE...")
         username_input = WebDriverWait(self.browser, 10).until(EC.visibility_of_element_located((By.XPATH, "//*[@id='ctl00_ctl00_ContentPlaceHolder1_userid']")))
+        username_input.clear()
         username_input.send_keys(self.user)
         password_input = WebDriverWait(self.browser, 10).until(EC.visibility_of_element_located((By.XPATH, "//*[@id='ctl00_ctl00_ContentPlaceHolder1_password']")))
+        password_input.clear()
         password_input.send_keys(self.password)
         sign_in_button = WebDriverWait(self.browser, 10).until(EC.visibility_of_element_located((By.XPATH, "//*[@id='ctl00_ctl00_ContentPlaceHolder1_btnSignIn']")))
         sign_in_button.click()
@@ -255,14 +257,27 @@ if __name__ == "__main__":
                 driver_list = input("chromedriver.exe not found in " + chromedriver_path + ". Please enter where chromedriver.exe is stored in. E.g. If chromedriver.exe is stored in " + driver_example + ", enter 'Desktop chromedriver' without the single quotes.: ").split(" ")
                 chromedriver_path = os.path.join(create_path(base_dir, driver_list), "chromedriver.exe")
             
+            print("----------------------------------------------------------------------------")
+            print("Before we begin, do note that Selenium will open a new chrome browser. Do NOT close the browser!")
+            condition = input("Press Y to continue: ").upper()
+            while condition != "Y":
+                condition = input("Press Y to continue: ")
+                
             os.chdir(create_path(base_dir, driver_list))
             chromedriver = chromedriver_path
             
             opts = Options()
             opts.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36")
-            chrome = webdriver.Chrome(chromedriver, chrome_options=opts)
+            
             count = 1
-            ivle = IVLE("https://ivle.nus.edu.sg", username, password, chrome, download_path, default_download_path, count)
+            state = True
+            while state:
+                try:
+                    chrome = webdriver.Chrome(chromedriver, chrome_options=opts)
+                    ivle = IVLE("https://ivle.nus.edu.sg", username, password, chrome, download_path, default_download_path, count)
+                    state = False
+                except WebDriverException:
+                    print("Do not close the browser!")
             break
         elif condition == "N":
             print("Goodbye!")
