@@ -1,6 +1,7 @@
 import os
 import shutil
 import getpass
+import platform
 from selenium import webdriver 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
@@ -54,7 +55,7 @@ class IVLE():
         while not self.check_login_status():
             self.relogin()
         
-        print("Successfully login!")
+        print("Successfully login to IVLE!")
         self.update()
     
     def relogin(self):
@@ -89,9 +90,9 @@ class IVLE():
     
     def check_folder(self, *args):
         if len(args) == 1:
-            path = self.path + "\\" + args[0]
+            path = os.path.join(self.path, args[0])
         elif len(args) == 2:
-            path = args[0] + "\\" + args[1] 
+            path = os.path.join(args[0], args[1]) 
         if not os.path.exists(path):
             os.mkdir(path)
         return path
@@ -160,7 +161,7 @@ class IVLE():
                     folder_url = element.get_attribute("href")
                     
                     if folder_url != None:
-                        new_folder = folder + "\\" + element.text
+                        new_folder = os.path.join(folder, element.text)
                         self.open_new_window(folder_url)
                         self.update_folders(new_folder, new_path) 
                     else:
@@ -181,13 +182,16 @@ class IVLE():
         return
     
     def download_file(self, module, path, url, file_name):
-        os.chdir(self.default)
-        self.browser.get(url)
-        while file_name not in os.listdir():
-            continue
-        shutil.move(self.default + "\\" + file_name, path)
-        print(file_name + " has been downloaded into " + module + " folder!")
-                
+        try:
+            os.chdir(self.default)
+            self.browser.get(url)
+            while file_name not in os.listdir():
+                continue
+            shutil.move(os.path.join(self.default, file_name), path)
+            print(file_name + " has been downloaded into " + module + " folder!")
+        except:
+            pass
+                    
     def end(self):
         self.browser.close()
 
@@ -202,8 +206,8 @@ def create_directory(base, path_list):
         path = os.path.join(path, directory)
         if not os.path.exists(path):
             os.mkdir(path)
-    
-if __name__ == "__main__":
+
+def warning():
     print("This IVLE Python Program was built using Python 3.6 and runs only on Windows OS\n")
     print("This program will login to the user's NUS IVLE account and download all possible updates.")
     print("The user only needs to provide an absolute path to store all the downloads and the program will create the necessary folders to store the files, if there is any. The program will create a NUS folder in the designated download path to store all the downloads.\n")
@@ -216,6 +220,26 @@ if __name__ == "__main__":
     print("------------------------------------------------------------------------------------------\n")
     
     print("NOTE: This program does not save any usernames, passwords and paths.")
+    
+def display():
+    if platform.system() == "Windows":
+        driver_example = os.path.join(os.path.join(base_dir, "Desktop"), "chromedriver")
+        driver_list = input("Enter the location where chromedriver.exe is stored in. E.g. If chromedriver.exe is stored in " + driver_example + ", enter 'Desktop chromedriver' without the single quotes: ").split(" ")
+        chromedriver_path = os.path.join(create_path(base_dir, driver_list), "chromedriver.exe")
+        while not os.path.isfile(chromedriver_path):
+            driver_list = input("chromedriver.exe not found in " + chromedriver_path + ". Please enter where chromedriver.exe is stored in. E.g. If chromedriver.exe is stored in " + driver_example + ", enter 'Desktop chromedriver' without the single quotes.: ").split(" ")
+            chromedriver_path = os.path.join(create_path(base_dir, driver_list), "chromedriver.exe")
+    else:
+        driver_example = os.path.join(os.path.join(base_dir, "Desktop"), "Downloads")
+        driver_list = input("Enter the location where chromedriver is stored in. E.g. If chromedriver is stored in " + driver_example + ", enter 'Desktop Downloads' without the single quotes: ").split(" ")
+        chromedriver_path = os.path.join(create_path(base_dir, driver_list), "chromedriver")
+        while not os.path.isfile(chromedriver_path):
+            driver_list = input("chromedriver not found in " + chromedriver_path + ". Please enter where chromedriver is stored in. E.g. If chromedriver is stored in " + driver_example + ", enter 'Desktop Downloads' without the single quotes.: ").split(" ")
+            chromedriver_path = os.path.join(create_path(base_dir, driver_list), "chromedriver")
+    return chromedriver_path, driver_list
+ 
+if __name__ == "__main__":
+    warning()
     
     condition = input("Have you satisfied the above conditions: [Y(es)/N(o)] ").upper()
     while True:
@@ -250,12 +274,7 @@ if __name__ == "__main__":
                 default_download_dir_list = input(default_download_path + " does not exist. Please enter the correct default download path. E.g. If the default download path is " + default_example + ", enter 'desktop downloads' without the single quotes: ")
                 default_download_path = create_path(base_dir, default_download_dir_list)
             
-            driver_example = os.path.join(os.path.join(base_dir, "Desktop"), "chromedriver")
-            driver_list = input("Enter the location where chromedriver.exe is stored in. E.g. If chromedriver.exe is store in " + driver_example + ", enter 'Desktop chromedriver' without the single quotes: ").split(" ")
-            chromedriver_path = os.path.join(create_path(base_dir, driver_list), "chromedriver.exe")
-            while not os.path.isfile(chromedriver_path):
-                driver_list = input("chromedriver.exe not found in " + chromedriver_path + ". Please enter where chromedriver.exe is stored in. E.g. If chromedriver.exe is stored in " + driver_example + ", enter 'Desktop chromedriver' without the single quotes.: ").split(" ")
-                chromedriver_path = os.path.join(create_path(base_dir, driver_list), "chromedriver.exe")
+            chromedriver, driver_list = display()
             
             print("----------------------------------------------------------------------------")
             print("Before we begin, do note that Selenium will open a new chrome browser. Do NOT close the browser!")
@@ -264,7 +283,6 @@ if __name__ == "__main__":
                 condition = input("Press Y to continue: ")
                 
             os.chdir(create_path(base_dir, driver_list))
-            chromedriver = chromedriver_path
             
             opts = Options()
             opts.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36")
